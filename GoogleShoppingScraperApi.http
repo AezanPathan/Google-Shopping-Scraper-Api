@@ -1,0 +1,6 @@
+@GoogleShoppingScraperApi_HostAddress = http://localhost:5107
+
+GET {{GoogleShoppingScraperApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
