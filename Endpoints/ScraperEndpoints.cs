@@ -16,5 +16,16 @@ public static class ScraperEndpoints
         })
         .WithName("TestScraper")
         .WithTags("Scraper");
+
+         // ✅ Product scraping endpoint
+            app.MapGet("/scrape/product", async (string query) =>
+            {
+                var scraper = new ScraperService();
+                var product = await scraper.ScrapProduct(query);
+
+                return Results.Ok(product);
+            })
+            .WithName("ScrapeProduct")
+            .WithTags("Scraper");
     }
 }
