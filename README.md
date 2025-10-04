@@ -5,7 +5,7 @@
 A minimal C# learning project that scrapes Google Shopping results and returns product data as JSON.
 This project helped me explore web scraping, API creation, and C# REST APIs in a simple, practical way.
 
-⚠️ Captchas are not handled; heavy usage may trigger them.
+⚠️ Captchas are not handled;
 
 ---
 
@@ -38,3 +38,4 @@ cd Google-Shopping-Scraper-Api
 dotnet restore
 dotnet build
 dotnet run 
+
