@@ -1,18 +1,7 @@
 using Microsoft.Playwright;
+using GoogleShoppingScraperApi.Models;
 
 namespace GoogleShoppingScraperApi.Services;
-
-public class ProductDto
-{
-    public string? Title { get; set; }
-    public string? Price { get; set; }
-    public string? Merchant { get; set; }
-    public string? Image { get; set; }
-    public string? Link { get; set; }
-    public string? Rating { get; set; }
-    public string? Reviews { get; set; }
-}
-
 
 public class ScraperService
 {
@@ -30,12 +19,12 @@ public class ScraperService
         return await page.TitleAsync();
     }
 
-    public async Task<List<ProductDto>> ScrapProduct(string productName)
+    public async Task<List<Product>> ScrapProduct(string productName, int maxScroll = 10, int totalProducts = 100)
     {
         using var playwright = await Playwright.CreateAsync();
         await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
-            Headless = false // set to true in production
+            Headless = true // set to true in production
         });
 
         var page = await browser.NewPageAsync();
@@ -47,51 +36,40 @@ public class ScraperService
 
         await page.Locator("[data-cid]").First.WaitForAsync();
 
-        // 🔽 Keep scrolling until enough results are loaded (or until no more new ones appear)
         int prevCount = 0;
-        for (int scrolls = 0; scrolls < 10; scrolls++) // adjust max scrolls
+        for (int scrolls = 0; scrolls < maxScroll; scrolls++) // adjust max scrolls
         {
             await page.EvaluateAsync("window.scrollBy(0, document.body.scrollHeight)");
             await page.WaitForTimeoutAsync(2000); // wait for new items to load
 
             int currentCount = await page.Locator("[data-cid]").CountAsync();
             if (currentCount == prevCount)
-                break; // no new results loaded -> stop scrolling
+                break; 
 
             prevCount = currentCount;
         }
 
-        var products = new List<ProductDto>();
+        var products = new List<Product>();
         var productCards = page.Locator("[data-cid]");
         int count = await productCards.CountAsync();
 
         for (int i = 0; i < count; i++)
         {
+            if (i >= totalProducts)
+                break;
+
             var card = productCards.Nth(i);
 
             string? SafeText(ILocator locator)
             {
-                try
-                {
-                    return locator.First.TextContentAsync(new LocatorTextContentOptions { Timeout = 500 })
-                                  .GetAwaiter().GetResult();
-                }
-                catch
-                {
-                    return null;
-                }
+                try { return locator.First.TextContentAsync(new LocatorTextContentOptions { Timeout = 500 }).GetAwaiter().GetResult(); }
+                catch { return null; }
             }
 
             async Task<string?> SafeAttrAsync(ILocator locator, string attribute)
             {
-                try
-                {
-                    return await locator.First.GetAttributeAsync(attribute, new LocatorGetAttributeOptions { Timeout = 500 });
-                }
-                catch
-                {
-                    return null;
-                }
+                try { return await locator.First.GetAttributeAsync(attribute, new LocatorGetAttributeOptions { Timeout = 500 }); }
+                catch { return null; }
             }
 
             var title = SafeText(card.Locator("div.gkQHve"));
@@ -102,7 +80,7 @@ public class ScraperService
             var rating = SafeText(card.Locator("div.LFROUd span.yi40Hd"));
             var reviews = SafeText(card.Locator("div.LFROUd span.RDApEe"));
 
-            products.Add(new ProductDto
+            products.Add(new Product
             {
                 Title = title?.Trim(),
                 Price = price?.Trim(),

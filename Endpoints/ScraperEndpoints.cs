@@ -17,15 +17,21 @@ public static class ScraperEndpoints
         .WithName("TestScraper")
         .WithTags("Scraper");
 
-         // ✅ Product scraping endpoint
-            app.MapGet("/scrape/product", async (string query) =>
-            {
-                var scraper = new ScraperService();
-                var product = await scraper.ScrapProduct(query);
+        // ✅ Product scraping endpoint
+        app.MapGet("/scrape/product", async (string query, int? maxScroll, int? totalProducts) =>
+        {
+            var scraper = new ScraperService();
 
-                return Results.Ok(product);
-            })
-            .WithName("ScrapeProduct")
-            .WithTags("Scraper");
+            // provide sensible defaults if not passed
+            int scrolls = maxScroll ?? 10;
+            int limit = totalProducts ?? 100;
+
+            var products = await scraper.ScrapProduct(query, scrolls, limit);
+
+            return Results.Ok(products);
+        })
+ .WithName("ScrapeProduct")
+ .WithTags("Scraper");
+
     }
 }

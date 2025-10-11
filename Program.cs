@@ -30,7 +30,6 @@ var app = builder.Build();
 app.UseHttpsRedirection();
 
 // Register endpoints (clean!)
-app.MapProductEndpoints();
 app.MapScraperEndpoints();
 
 app.Run();
