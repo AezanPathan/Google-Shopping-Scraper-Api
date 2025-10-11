@@ -26,7 +26,7 @@ public static class ScraperEndpoints
             int scrolls = maxScroll ?? 10;
             int limit = totalProducts ?? 100;
 
-            var products = await scraper.ScrapProduct(query, scrolls, limit);
+            var products = await scraper.ScrapeProductsAsync(query, scrolls, limit);
 
             return Results.Ok(products);
         })

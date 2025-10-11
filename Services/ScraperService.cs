@@ -19,7 +19,14 @@ public class ScraperService
         return await page.TitleAsync();
     }
 
-    public async Task<List<Product>> ScrapProduct(string productName, int maxScroll = 10, int totalProducts = 100)
+    /// <summary>
+    /// Scrapes Google Shopping search results for the given product name.
+    /// Returns a list of <see cref="Product"/> instances found on the page.
+    /// </summary>
+    /// <param name="productName">Search query to use on Google Shopping.</param>
+    /// <param name="maxScroll">Maximum number of scroll iterations to attempt loading more items.</param>
+    /// <param name="totalProducts">Maximum number of products to return.</param>
+    public async Task<List<Product>> ScrapeProductsAsync(string productName, int maxScroll = 10, int totalProducts = 100)
     {
         using var playwright = await Playwright.CreateAsync();
         await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
@@ -34,7 +41,7 @@ public class ScraperService
             WaitUntil = WaitUntilState.NetworkIdle
         });
 
-        await page.Locator("[data-cid]").First.WaitForAsync();
+    await page.Locator("[data-cid]").First.WaitForAsync();
 
         int prevCount = 0;
         for (int scrolls = 0; scrolls < maxScroll; scrolls++) // adjust max scrolls
@@ -53,45 +60,55 @@ public class ScraperService
         var productCards = page.Locator("[data-cid]");
         int count = await productCards.CountAsync();
 
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < count && products.Count < totalProducts; i++)
         {
-            if (i >= totalProducts)
-                break;
-
             var card = productCards.Nth(i);
 
-            string? SafeText(ILocator locator)
-            {
-                try { return locator.First.TextContentAsync(new LocatorTextContentOptions { Timeout = 500 }).GetAwaiter().GetResult(); }
-                catch { return null; }
-            }
-
-            async Task<string?> SafeAttrAsync(ILocator locator, string attribute)
-            {
-                try { return await locator.First.GetAttributeAsync(attribute, new LocatorGetAttributeOptions { Timeout = 500 }); }
-                catch { return null; }
-            }
-
-            var title = SafeText(card.Locator("div.gkQHve"));
-            var price = SafeText(card.Locator("span[aria-label^='Current price']"));
-            var merchant = SafeText(card.Locator("span.WJMUdc"));
-            var image = await SafeAttrAsync(card.Locator("div.R1iPve img"), "src");
-            var link = await SafeAttrAsync(card.Locator("a"), "href");
-            var rating = SafeText(card.Locator("div.LFROUd span.yi40Hd"));
-            var reviews = SafeText(card.Locator("div.LFROUd span.RDApEe"));
+            var title = (await SafeTextAsync(card.Locator("div.gkQHve")))?.Trim();
+            var price = (await SafeTextAsync(card.Locator("span[aria-label^='Current price']")))?.Trim();
+            var merchant = (await SafeTextAsync(card.Locator("span.WJMUdc")))?.Trim();
+            var image = await SafeGetAttributeAsync(card.Locator("div.R1iPve img"), "src");
+            var link = await SafeGetAttributeAsync(card.Locator("a"), "href");
+            var rating = (await SafeTextAsync(card.Locator("div.LFROUd span.yi40Hd")))?.Trim();
+            var reviews = (await SafeTextAsync(card.Locator("div.LFROUd span.RDApEe")))?.Trim();
 
             products.Add(new Product
             {
-                Title = title?.Trim(),
-                Price = price?.Trim(),
-                Merchant = merchant?.Trim(),
+                Title = title,
+                Price = price,
+                Merchant = merchant,
                 Image = image,
-                Rating = rating?.Trim(),
-                Reviews = reviews?.Trim()
+                Rating = rating,
+                Reviews = reviews,
+                Link = link
             });
         }
 
         return products;
+    }
+
+    private static async Task<string?> SafeTextAsync(ILocator locator)
+    {
+        try
+        {
+            return await locator.First.TextContentAsync(new LocatorTextContentOptions { Timeout = 500 });
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static async Task<string?> SafeGetAttributeAsync(ILocator locator, string attribute)
+    {
+        try
+        {
+            return await locator.First.GetAttributeAsync(attribute, new LocatorGetAttributeOptions { Timeout = 500 });
+        }
+        catch
+        {
+            return null;
+        }
     }
 
 
