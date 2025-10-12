@@ -41,7 +41,7 @@ public class ScraperService
             WaitUntil = WaitUntilState.NetworkIdle
         });
 
-    await page.Locator("[data-cid]").First.WaitForAsync();
+        await page.Locator("[data-cid]").First.WaitForAsync();
 
         int prevCount = 0;
         for (int scrolls = 0; scrolls < maxScroll; scrolls++) // adjust max scrolls
@@ -110,6 +110,4 @@ public class ScraperService
             return null;
         }
     }
-
-
 }
